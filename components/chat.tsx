@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChatMessageComponent } from "@/components/chat-message";
 import { Assessment } from "@/lib/types";
-import { motion, AnimatePresence } from "framer-motion";
 import { useChat } from "@ai-sdk/react";
 import LLMOutput from "./llm-output";
 import { ChevronDown } from "lucide-react";
@@ -163,7 +162,7 @@ export function Chat() {
   };
 
   return (
-    <div className="flex h-full flex-col rounded-lg border shadow-sm">
+    <div className="flex h-[calc(100vh-12rem)] flex-col rounded-lg border shadow-sm overflow-hidden bg-white">
       <div className="flex items-center justify-between border-b px-4 py-2">
         <h2 className="text-lg font-semibold">English Level Assessment</h2>
         {isAssessmentComplete && (

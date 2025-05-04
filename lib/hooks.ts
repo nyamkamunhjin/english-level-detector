@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { Assessment, ChatMessage, EnglishLevel } from "@/lib/types";
+import { Assessment, ChatMessage } from "@/lib/types";
 
 interface UseEnglishLevelDetectorReturn {
   messages: ChatMessage[];
@@ -16,7 +16,7 @@ export function useEnglishLevelDetector(): UseEnglishLevelDetectorReturn {
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [isAssessmentComplete, setIsAssessmentComplete] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [questionCount, setQuestionCount] = useState(0);
+  const [_questionCount, setQuestionCount] = useState(0);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
 
   // Initialize the chat with a welcome message

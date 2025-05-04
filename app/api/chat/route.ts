@@ -1,7 +1,6 @@
 import { streamText } from "ai";
 import { google } from "@ai-sdk/google";
 import { z } from "zod";
-import { EnglishLevel } from "@/lib/types";
 
 // Define the system prompt for the English level assessment
 const systemPrompt = `You are an expert English language assessor specializing in IELTS and advanced CEFR assessment (A1, A2, B1, B2, C1, C2).
@@ -79,13 +78,6 @@ ASSESSMENT_RESULT: {
 
 Remember: Be professional, precise, and provide a fair assessment with IELTS-aligned standards and expectations. Focus on accurately determining if the user is at higher proficiency levels (B2-C2).`;
 
-// Create a schema for validating the assessment result
-const assessmentSchema = z.object({
-  level: z.enum(["A1", "A2", "B1", "B2", "C1", "C2"]),
-  strengths: z.array(z.string()),
-  weaknesses: z.array(z.string()),
-  recommendations: z.array(z.string()),
-});
 
 export async function POST(req: Request) {
   try {
