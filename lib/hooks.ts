@@ -16,7 +16,7 @@ export function useEnglishLevelDetector(): UseEnglishLevelDetectorReturn {
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [isAssessmentComplete, setIsAssessmentComplete] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [_questionCount, setQuestionCount] = useState(0);
+  const [, setQuestionCount] = useState(0);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
 
   // Initialize the chat with a welcome message

@@ -178,7 +178,7 @@ export function Chat() {
         onScroll={handleScroll}
       >
         <div>
-          {messages.map((message, index) => (
+          {messages.map((message) => (
             <div key={message.id}>
               <ChatMessageComponent 
                 message={{
@@ -186,10 +186,6 @@ export function Chat() {
                   role: message.role,
                   content: typeof message.content === 'string' ? message.content : JSON.stringify(message.content)
                 }}
-                status={
-                  // Only pass streaming status to the latest assistant message
-                  message.role === 'assistant' && index === messages.length - 1 ? status : 'ready'
-                }
               />
             </div>
           ))}

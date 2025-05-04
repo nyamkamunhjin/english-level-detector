@@ -5,10 +5,9 @@ import LLMOutput from "./llm-output";
 
 interface ChatMessageProps {
   message: ChatMessage | Message;
-  status?: 'submitted' | 'streaming' | 'ready' | 'error';
 }
 
-export function ChatMessageComponent({ message, status = 'ready' }: ChatMessageProps) {
+export function ChatMessageComponent({ message }: ChatMessageProps) {
   // Handle options from custom ChatMessage type
   const hasOptions = 'options' in message && Array.isArray(message.options);
   const onOptionClick = 'onOptionClick' in message ? message.onOptionClick : undefined;
@@ -29,7 +28,7 @@ export function ChatMessageComponent({ message, status = 'ready' }: ChatMessageP
         )}
       >
         {message.role === "assistant" ? (
-          <LLMOutput text={message.content as string} status={status} />
+          <LLMOutput text={message.content as string} />
         ) : (
           message.content
         )}

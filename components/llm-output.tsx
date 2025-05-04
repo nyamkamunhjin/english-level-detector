@@ -3,8 +3,7 @@ import ReactMarkdown from 'react-markdown';
 
 const LLMOutput: React.FC<{
     text: string;
-    status?: 'submitted' | 'streaming' | 'ready' | 'error';
-}> = ({ text, status = 'ready' }) => {
+}> = ({ text }) => {
     const [isBalanced, setIsBalanced] = useState(true);
 
     // Check if the markdown code blocks are balanced - this helps prevent rendering broken markdown
@@ -58,7 +57,7 @@ const LLMOutput: React.FC<{
                             h3: ({ ...props }) => (
                                 <h3 className="mb-2" {...props} />
                             ),
-                            p: ({ node, ...props }) => (
+                            p: ({ ...props }) => (
                                 <p className="mb-0" {...props} />
                             ),
                         }}
@@ -71,7 +70,7 @@ const LLMOutput: React.FC<{
                 )}
             </div>
         );
-    }, [text, isBalanced, status]);
+    }, [text, isBalanced]);
 
     return markdownOutput;
 };

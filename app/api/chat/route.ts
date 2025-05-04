@@ -1,6 +1,5 @@
 import { streamText } from "ai";
 import { google } from "@ai-sdk/google";
-import { z } from "zod";
 
 // Define the system prompt for the English level assessment
 const systemPrompt = `You are an expert English language assessor specializing in IELTS and advanced CEFR assessment (A1, A2, B1, B2, C1, C2).
