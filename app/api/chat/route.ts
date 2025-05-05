@@ -22,7 +22,7 @@ Follow these guidelines for the assessment:
    - Cultural and idiomatic language usage
    - Professional and specialized language
 5. Make questions progressively more challenging if the user performs well.
-6. If a user struggles significantly with a question, provide a slightly easier follow-up, but maintain overall high difficulty.
+6. If user fails to answer a question, do not provide a hint. Just ask the next question with lower difficulty.
 7. Do not shy away from advanced vocabulary and complex sentence structures in your questions.
 8. Only ask one question at a time and wait for the user's response.
 9. Provide concise, clear instructions for each question.
