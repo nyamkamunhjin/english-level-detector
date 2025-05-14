@@ -6,7 +6,7 @@ import { ChatMessageComponent } from "@/components/chat-message";
 import { Assessment } from "@/lib/types";
 import { useChat } from "@ai-sdk/react";
 import LLMOutput from "./llm-output";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 
 export function Chat() {
   const [input, setInput] = useState("");
@@ -30,7 +30,7 @@ export function Chat() {
       {
         id: "welcome",
         role: "assistant",
-        content: "Welcome to the English Level Assessment! I'll ask you a series of questions to determine your English proficiency level. Let's start! What's your name?"
+        content: "Англи хэлний түвшин тогтоох үнэлгээнд тавтай морил! Таны англи хэлний чадварын түвшинг тодорхойлохын тулд би танд хэд хэдэн асуулт тавих болно. Эхлээд таны нэр хэн бэ?"
       }
     ]
   });
@@ -91,7 +91,7 @@ export function Chat() {
       {
         id: "welcome",
         role: "assistant",
-        content: "Welcome to the English Level Assessment! I'll ask you a series of questions to determine your English proficiency level. Let's start! What's your name?"
+        content: "Англи хэлний түвшин тогтоох үнэлгээнд тавтай морил! Таны англи хэлний чадварын түвшинг тодорхойлохын тулд би танд хэд хэдэн асуулт тавих болно. Эхлээд таны нэр хэн бэ?"
       }
     ]);
     setAssessment(null);
@@ -190,6 +190,11 @@ export function Chat() {
             </div>
           ))}
         </div>
+        {isLoading && (
+        <div className="">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      )}
         
         {isAssessmentComplete && assessment && (
           <div 

@@ -1,8 +1,10 @@
-import { streamText } from "ai";
-import { google } from "@ai-sdk/google";
+import { streamText } from 'ai';
+import { google } from '@ai-sdk/google';
 
 // Define the system prompt for the English level assessment
-const systemPrompt = `You are an expert English language assessor specializing in IELTS and advanced CEFR assessment (A1, A2, B1, B2, C1, C2).
+const systemPrompt = (
+    language: string
+) => `You are an expert English language assessor specializing in IELTS and advanced CEFR assessment (A1, A2, B1, B2, C1, C2).
 
 Follow these guidelines for the assessment:
 1. Ask 10-12 challenging questions to properly assess the user's English proficiency.
@@ -26,10 +28,10 @@ Follow these guidelines for the assessment:
 7. Do not shy away from advanced vocabulary and complex sentence structures in your questions.
 8. Only ask one question at a time and wait for the user's response.
 9. Provide concise, clear instructions for each question.
-10. Be encouraging but maintain a professional assessment approach.
+10. Maintain a professional assessment approach.
 
 IMPORTANT FORMATTING INSTRUCTIONS:
-- Only render in markdown format. Specially for multiple choice questions. A, B, C, D starts from new line etc.
+- Only render in markdown format. Specially for multiple choice questions, A, B, C, D starts from new line etc.
 - For multiple choice questions, format each option on a new line with a letter prefix like:
   
   What is the most accurate description of the economic principle described in the passage? \n
@@ -75,42 +77,46 @@ ASSESSMENT_RESULT: {
   ]
 }
 
-Remember: Be professional, precise, and provide a fair assessment with IELTS-aligned standards and expectations. Focus on accurately determining if the user is at higher proficiency levels (B2-C2).`;
-
+Remember: Be professional, precise, and provide a fair assessment with IELTS-aligned standards and expectations. Focus on accurately determining the level
+Remember: It is english assessment, but use only ${language} for the instructions. For the questions and answers, use english.
+`;
 
 export async function POST(req: Request) {
-  try {
-    // Get the messages from the request body
-    const { messages } = await req.json();
+    try {
+        // Get the messages from the request body
+        const { messages } = await req.json();
 
-    // Create message array with system prompt
-    const chatMessages = [];
-    
-    // Add system message if not already present
-    if (messages.length === 0 || messages[0].role !== "system") {
-      chatMessages.push({
-        role: "system",
-        content: systemPrompt,
-      });
+        // Create message array with system prompt
+        const chatMessages = [];
+
+        // Add system message if not already present
+        if (messages.length === 0 || messages[0].role !== 'system') {
+            chatMessages.push({
+                role: 'system',
+                content: systemPrompt('mongolian'),
+            });
+        }
+
+        // Add the rest of the messages
+        chatMessages.push(...messages);
+
+        // Use streamText from AI SDK to handle streaming response with Google's Gemini model
+        const result = await streamText({
+            model: google('gemini-2.5-flash-preview-04-17'),
+            messages: chatMessages,
+            temperature: 0.7,
+        });
+
+        // Return streaming response using the API response
+        return result.toDataStreamResponse();
+    } catch (error) {
+        console.error('Error in chat API:', error);
+        return new Response(
+            JSON.stringify({ error: 'Failed to process request' }),
+            {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' },
+            }
+        );
     }
-    
-    // Add the rest of the messages
-    chatMessages.push(...messages);
-
-    // Use streamText from AI SDK to handle streaming response with Google's Gemini model
-    const result = await streamText({
-      model: google("gemini-2.0-flash"),
-      messages: chatMessages,
-      temperature: 0.7,
-    });
-    
-    // Return streaming response using the API response
-    return result.toDataStreamResponse();
-  } catch (error) {
-    console.error("Error in chat API:", error);
-    return new Response(JSON.stringify({ error: "Failed to process request" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-} 
+}
