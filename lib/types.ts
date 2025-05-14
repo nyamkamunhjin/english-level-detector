@@ -34,7 +34,7 @@ export interface ChatMessage {
 }
 
 export interface Assessment {
-  level: EnglishLevel;
+  level: string;
   strengths: string[];
   weaknesses: string[];
   recommendations: string[];

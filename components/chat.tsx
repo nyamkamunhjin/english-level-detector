@@ -4,18 +4,38 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChatMessageComponent } from "@/components/chat-message";
 import { Assessment } from "@/lib/types";
-import { useChat } from "@ai-sdk/react";
+import { Message, useChat } from "@ai-sdk/react";
 import LLMOutput from "./llm-output";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown, Loader2, Wrench } from "lucide-react";
+import { MultipleChoice } from "./multiple-choice";
+import { ReadingComprehension } from "./reading-comprehension";
+import { ErrorIdentification } from "./error-identification";
+import { Paraphrasing } from "./paraphrasing";
+import { IdiomaticExpression } from "./idiomatic-expression";
+import { ConditionalScenario } from "./conditional-scenario";
+
+// Extended message interface to include isHidden property
+interface ExtendedMessage extends Message {
+  isHidden?: boolean;
+}
+
+// Option interface for multiple choice questions
+interface Option {
+  id: string;
+  text: string;
+  label: string;
+}
 
 export function Chat() {
   const [input, setInput] = useState("");
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [isAssessmentComplete, setIsAssessmentComplete] = useState(false);
+  const [isToolCalling, setIsToolCalling] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   
   const { 
     messages, 
@@ -23,7 +43,8 @@ export function Chat() {
     handleInputChange,
     handleSubmit: handleChatSubmit,
     status, 
-    setMessages
+    setMessages,
+    append
   } = useChat({
     api: "/api/chat",
     initialMessages: [
@@ -35,8 +56,22 @@ export function Chat() {
     ]
   });
 
+  console.log(messages);
+
   // Check if the chat is currently loading
   const isLoading = status === 'streaming' || status === 'submitted';
+
+  // Check for tool calls in messages
+  useEffect(() => {
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      // If the last message contains a tool call but no tool result yet
+      const hasToolCall = findToolData(lastMessage).some(tool => tool.type === 'tool_call');
+      const hasToolResult = findToolData(lastMessage).some(tool => tool.type === 'tool_result');
+      
+      setIsToolCalling(hasToolCall && !hasToolResult);
+    }
+  }, [messages]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +87,25 @@ export function Chat() {
       // Scroll to bottom when sending a message
       scrollToBottom();
     }
+  };
+
+  // Handle multiple choice selection
+  const handleOptionSelect = (questionId: string, optionId: string) => {
+    setSelectedOptions(prev => ({
+      ...prev,
+      [questionId]: optionId
+    }));
+    
+    // Auto submit the selected answer but don't show text
+    append({
+      role: 'user',
+      content: `I choose option ${optionId}`,
+      // Cast to any to allow the isHidden property
+      isHidden: true
+    } as any);
+    
+    // Scroll to bottom
+    scrollToBottom();
   };
 
   // Process messages to check for assessment results
@@ -96,6 +150,7 @@ export function Chat() {
     ]);
     setAssessment(null);
     setIsAssessmentComplete(false);
+    setSelectedOptions({});
     
     // Focus input after restart
     setTimeout(() => {
@@ -161,6 +216,49 @@ export function Chat() {
     return items.map(item => `- ${item}`).join('\n');
   };
 
+  // Get option text by ID from a question
+  const getOptionTextById = (options: Option[], optionId: string) => {
+    const option = options.find((opt: Option) => opt.id === optionId);
+    return option ? option.text : optionId;
+  };
+
+  // Helper to find tool call data in message
+  const findToolData = (message: Message) => {
+    // Check for tool calls in different formats based on SDK version
+    const toolData = [];
+    
+    // Find tool calls in the message content
+    if (message.parts && Array.isArray(message.parts)) {
+      for (const part of message.parts) {
+        if (
+          part.type === 'tool-invocation' && 
+          part.toolInvocation &&
+          ['multipleChoice', 'readingComprehension', 'errorIdentification', 
+           'paraphrasingTask', 'idiomaticExpression', 'conditionalScenario'].includes(part.toolInvocation.toolName) && 
+          part.toolInvocation?.args
+        ) {
+          // If it has a result, use that (completed tool call)
+          if (part.toolInvocation.state === 'result' && part.toolInvocation.result) {
+            toolData.push({
+              type: 'tool_result',
+              toolType: part.toolInvocation.toolName,
+              data: part.toolInvocation.result
+            });
+          } else {
+            // Otherwise it's a pending tool call
+            toolData.push({
+              type: 'tool_call',
+              toolType: part.toolInvocation.toolName,
+              data: part.toolInvocation.args
+            });
+          }
+        }
+      }
+    }
+    
+    return toolData;
+  };
+
   return (
     <div className="flex h-[calc(100vh-12rem)] flex-col rounded-lg border shadow-sm overflow-hidden bg-white">
       <div className="flex items-center justify-between border-b px-4 py-2">
@@ -178,23 +276,184 @@ export function Chat() {
         onScroll={handleScroll}
       >
         <div>
-          {messages.map((message) => (
-            <div key={message.id}>
-              <ChatMessageComponent 
-                message={{
-                  id: message.id,
-                  role: message.role,
-                  content: typeof message.content === 'string' ? message.content : JSON.stringify(message.content)
-                }}
-              />
+          {messages.map((message) => {
+            // Skip hidden messages (user selections)
+            if (message.role === 'user' && (message as any).isHidden) {
+              return null;
+            }
+            
+            return (
+              <div key={message.id}>
+                <ChatMessageComponent 
+                  message={{
+                    id: message.id,
+                    role: message.role,
+                    content: typeof message.content === 'string' ? message.content : JSON.stringify(message.content)
+                  }}
+                />
+                
+                {/* Render UI for different tool types */}
+                {findToolData(message).map((tool, idx) => {
+                  if (tool.type === 'tool_result') {
+                    const result = tool.data;
+                    if (result) {
+                      const isAnswered = selectedOptions[result.questionId];
+                      
+                      // Render appropriate component based on tool type
+                      if (!isAnswered) {
+                        switch(tool.toolType) {
+                          case 'multipleChoice':
+                            return (
+                              <MultipleChoice 
+                                key={`${message.id}-multiple-choice-${idx}`}
+                                question={result.question}
+                                options={result.options}
+                                questionId={result.questionId}
+                                onSelect={handleOptionSelect}
+                              />
+                            );
+                          case 'readingComprehension':
+                            return (
+                              <ReadingComprehension 
+                                key={`${message.id}-reading-comp-${idx}`}
+                                passage={result.passage}
+                                question={result.question}
+                                options={result.options}
+                                questionId={result.questionId}
+                                onSelect={handleOptionSelect}
+                              />
+                            );
+                          case 'errorIdentification':
+                            return (
+                              <ErrorIdentification 
+                                key={`${message.id}-error-id-${idx}`}
+                                sentence={result.sentence}
+                                options={result.options}
+                                questionId={result.questionId}
+                                onSelect={handleOptionSelect}
+                              />
+                            );
+                          case 'paraphrasingTask':
+                            return (
+                              <Paraphrasing 
+                                key={`${message.id}-paraphrase-${idx}`}
+                                sentence={result.sentence}
+                                options={result.options}
+                                questionId={result.questionId}
+                                onSelect={handleOptionSelect}
+                              />
+                            );
+                          case 'idiomaticExpression':
+                            return (
+                              <IdiomaticExpression 
+                                key={`${message.id}-idiomatic-${idx}`}
+                                context={result.context}
+                                expression={result.expression}
+                                question={result.question}
+                                options={result.options}
+                                questionId={result.questionId}
+                                onSelect={handleOptionSelect}
+                              />
+                            );
+                          case 'conditionalScenario':
+                            return (
+                              <ConditionalScenario 
+                                key={`${message.id}-conditional-${idx}`}
+                                scenario={result.scenario}
+                                question={result.question}
+                                options={result.options}
+                                questionId={result.questionId}
+                                onSelect={handleOptionSelect}
+                              />
+                            );
+                          default:
+                            return null;
+                        }
+                      } else {
+                        // Show answered question UI
+                        return (
+                          <div key={`${message.id}-answered-${idx}`} className="w-full p-4 rounded-md border border-gray-200 bg-gray-50 my-4">
+                            {tool.toolType === 'readingComprehension' && (
+                              <div className="mb-3 text-sm bg-gray-100 p-2 rounded max-h-32 overflow-y-auto">
+                                <p className="font-medium text-xs text-gray-500 mb-1">Passage</p>
+                                {result.passage}
+                              </div>
+                            )}
+                            
+                            {tool.toolType === 'errorIdentification' && (
+                              <div className="mb-3">
+                                <p className="font-medium mb-1">{result.sentence}</p>
+                              </div>
+                            )}
+                            
+                            {tool.toolType === 'paraphrasingTask' && (
+                              <div className="mb-3">
+                                <p className="font-medium mb-1">Original: {result.sentence}</p>
+                              </div>
+                            )}
+                            
+                            {tool.toolType === 'idiomaticExpression' && (
+                              <div className="mb-3">
+                                <p className="text-sm mb-1">{result.context}</p>
+                                <p className="font-medium text-primary mb-1">"{result.expression}"</p>
+                                <p className="font-medium mt-2">{result.question}</p>
+                              </div>
+                            )}
+                            
+                            {tool.toolType === 'conditionalScenario' && (
+                              <div className="mb-3">
+                                <p className="italic mb-1">{result.scenario}</p>
+                                <p className="font-medium mt-2">{result.question}</p>
+                              </div>
+                            )}
+                            
+                            {/* Show question for multiple choice */}
+                            {(tool.toolType === 'multipleChoice') && (
+                              <div className="mb-3">
+                                <p className="font-medium">{result.question}</p>
+                              </div>
+                            )}
+                            
+                            <div className="flex gap-2 items-center">
+                              <div className="bg-primary text-white px-2 py-1 rounded font-medium">
+                                {result.options.find((opt: Option) => opt.id === selectedOptions[result.questionId])?.label || selectedOptions[result.questionId]}
+                              </div>
+                              <p>{getOptionTextById(result.options, selectedOptions[result.questionId])}</p>
+                            </div>
+                          </div>
+                        );
+                      }
+                    }
+                  } else if (tool.type === 'tool_call') {
+                    return (
+                      <div key={`${message.id}-call-${idx}`} className="w-full my-2 py-2 px-4 rounded-md border border-gray-200 animate-pulse">
+                        <p className="text-gray-500">Loading question...</p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            );
+          })}
+        </div>
+        
+        {/* Loading and Tool Calling indicators */}
+        <div className="flex justify-center items-center gap-3 mt-2">
+          {isLoading && (
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-sm text-gray-500">Thinking...</span>
             </div>
-          ))}
+          )}
+          
+          {isToolCalling && (
+            <div className="flex items-center gap-2">
+              <Wrench className="w-5 h-5 animate-pulse text-blue-500" />
+              <span className="text-sm text-blue-500">Preparing question...</span>
+            </div>
+          )}
         </div>
-        {isLoading && (
-        <div className="">
-          <Loader2 className="w-8 h-8 animate-spin" />
-        </div>
-      )}
         
         {isAssessmentComplete && assessment && (
           <div 
