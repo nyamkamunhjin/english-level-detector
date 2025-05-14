@@ -12,10 +12,10 @@ export function AssessmentResultComponent({ result }: AssessmentResultProps) {
       <CardHeader className="bg-primary/5">
         <CardTitle className="flex items-center gap-2">
           <BadgeCheck className="h-5 w-5 text-primary" />
-          Assessment Complete
+          Шалгалт дууслаа
         </CardTitle>
         <CardDescription>
-          Your English proficiency level has been evaluated
+          Таны Англи хэлний түвшинг танилцуулж байна
         </CardDescription>
       </CardHeader>
       
@@ -26,12 +26,12 @@ export function AssessmentResultComponent({ result }: AssessmentResultProps) {
             <p className="text-muted-foreground">CEFR Level</p>
           </div>
           
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 grid-cols-1">
             {/* Strengths */}
             <div className="space-y-3">
               <h3 className="text-lg font-medium flex items-center gap-2">
                 <Star className="h-5 w-5 text-yellow-500" />
-                Strengths
+                  Чадвар
               </h3>
               <ul className="space-y-1 text-sm">
                 {result.strengths.map((strength, index) => (
@@ -46,7 +46,7 @@ export function AssessmentResultComponent({ result }: AssessmentResultProps) {
             <div className="space-y-3">
               <h3 className="text-lg font-medium flex items-center gap-2">
                 <Star className="h-5 w-5 text-blue-500" />
-                Areas for Improvement
+                Сайжруулах шаардлагатай газрууд
               </h3>
               <ul className="space-y-1 text-sm">
                 {result.weaknesses.map((weakness, index) => (
@@ -61,7 +61,7 @@ export function AssessmentResultComponent({ result }: AssessmentResultProps) {
             <div className="space-y-3">
               <h3 className="text-lg font-medium flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-indigo-500" />
-                Recommendations
+                Зөвлөгөө
               </h3>
               <ul className="space-y-1 text-sm">
                 {result.recommendations.map((recommendation, index) => (

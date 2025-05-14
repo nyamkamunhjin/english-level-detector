@@ -15,6 +15,7 @@ import { Paraphrasing } from "./paraphrasing";
 import { IdiomaticExpression } from "./idiomatic-expression";
 import { ConditionalScenario } from "./conditional-scenario";
 import { AssessmentResultComponent } from "./assessment-result";
+import { Progress } from "@/components/ui/progress";
 
 // Extended message interface to include isHidden property
 interface ExtendedMessage extends Message {
@@ -33,6 +34,9 @@ export function Chat() {
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [isAssessmentComplete, setIsAssessmentComplete] = useState(false);
   const [isToolCalling, setIsToolCalling] = useState(false);
+  const [questionCount, setQuestionCount] = useState(0);
+  const [answeredQuestionIds, setAnsweredQuestionIds] = useState<Set<string>>(new Set());
+  const totalQuestions = 10;
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -72,6 +76,29 @@ export function Chat() {
       const hasToolResult = findToolData(lastMessage).some(tool => tool.type === 'tool_result');
       
       setIsToolCalling(hasToolCall && !hasToolResult);
+    }
+  }, [messages]);
+
+  // Update question count based on tool results
+  useEffect(() => {
+    // Collect all question IDs from tool results (except assessment results)
+    const allQuestionIds = messages.flatMap(message => 
+      findToolData(message)
+        .filter(tool => 
+          tool.type === 'tool_result' && 
+          tool.toolType !== 'assessmentResult' &&
+          tool.data.questionId
+        )
+        .map(tool => tool.data.questionId)
+    );
+    
+    // Create a new Set with unique question IDs
+    const uniqueQuestionIds = new Set(allQuestionIds);
+    
+    // Update state if we have new questions
+    if (uniqueQuestionIds.size !== answeredQuestionIds.size) {
+      setAnsweredQuestionIds(uniqueQuestionIds);
+      setQuestionCount(uniqueQuestionIds.size);
     }
   }, [messages]);
 
@@ -278,13 +305,30 @@ export function Chat() {
   return (
     <div className="flex h-[calc(100vh-12rem)] flex-col rounded-lg border shadow-sm overflow-hidden bg-white">
       <div className="flex items-center justify-between border-b px-4 py-2">
-        <h2 className="text-lg font-semibold">English Level Assessment</h2>
+        <h2 className="text-lg font-semibold">Англи хэлний түвшинг тогтоох үнэлгээ</h2>
         {isAssessmentComplete && (
           <Button variant="ghost" size="sm" onClick={restart}>
-            Start New Assessment
+            Шинээр эхлэх
           </Button>
         )}
       </div>
+      
+      {!isAssessmentComplete && questionCount > 0 && (
+        <div className="px-4 py-2 border-b bg-muted/20">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-sm font-medium">
+              Асуулт {questionCount}/{totalQuestions}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              {Math.round((questionCount / totalQuestions) * 100)}% дууссан
+            </span>
+          </div>
+          <Progress 
+            value={(questionCount / totalQuestions) * 100} 
+            className="h-2" 
+          />
+        </div>
+      )}
       
       <div 
         ref={containerRef}
@@ -470,14 +514,14 @@ export function Chat() {
           {isLoading && (
             <div className="flex items-center gap-2">
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span className="text-sm text-gray-500">Thinking...</span>
+              <span className="text-sm text-gray-500">Бодож байна...</span>
             </div>
           )}
           
           {isToolCalling && (
             <div className="flex items-center gap-2">
               <Wrench className="w-5 h-5 animate-pulse text-blue-500" />
-              <span className="text-sm text-blue-500">Preparing question...</span>
+              <span className="text-sm text-blue-500">Асуултыг бэлдэж байна...</span>
             </div>
           )}
         </div>
@@ -487,10 +531,10 @@ export function Chat() {
           <div 
             className="mt-4 rounded-lg border bg-background p-4 shadow-sm"
           >
-            <h3 className="text-xl font-semibold">Your Assessment Results</h3>
+            <h3 className="text-xl font-semibold">Таны үнэлгээ</h3>
             <div className="mt-2">
               <p className="text-lg">
-                <span className="font-medium">English Level:</span>{" "}
+                <span className="font-medium">Англи хэлний түвшин:</span>{" "}
                 <span className="font-bold text-primary">{assessment.level}</span>
               </p>
               
@@ -505,7 +549,7 @@ export function Chat() {
               </div>
               
               <div className="mt-4">
-                <h4 className="font-medium">Recommendations:</h4>
+                <h4 className="font-medium">Зөвлөгөө:</h4>
                 <LLMOutput text={formatAssessmentSection(assessment.recommendations)} />
               </div>
             </div>
