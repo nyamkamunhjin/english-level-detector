@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChatMessageComponent } from "@/components/chat-message";
 import { Assessment } from "@/lib/types";
+import { AssessmentResult } from "@/lib/tools";
 import { Message, useChat } from "@ai-sdk/react";
 import LLMOutput from "./llm-output";
 import { ChevronDown, Loader2, Wrench } from "lucide-react";
@@ -13,6 +14,7 @@ import { ErrorIdentification } from "./error-identification";
 import { Paraphrasing } from "./paraphrasing";
 import { IdiomaticExpression } from "./idiomatic-expression";
 import { ConditionalScenario } from "./conditional-scenario";
+import { AssessmentResultComponent } from "./assessment-result";
 
 // Extended message interface to include isHidden property
 interface ExtendedMessage extends Message {
@@ -108,7 +110,20 @@ export function Chat() {
     scrollToBottom();
   };
 
-  // Process messages to check for assessment results
+  // Process assessment result tool calls
+  useEffect(() => {
+    const assessmentTools = messages.flatMap(message => 
+      findToolData(message).filter(tool => tool.toolType === 'assessmentResult' && tool.type === 'tool_result')
+    );
+    
+    if (assessmentTools.length > 0) {
+      const assessmentData = assessmentTools[assessmentTools.length - 1].data;
+      setAssessment(assessmentData);
+      setIsAssessmentComplete(true);
+    }
+  }, [messages]);
+
+  // Legacy assessment result parsing (fallback)
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
     if (lastMessage?.role === 'assistant' && typeof lastMessage.content === 'string' && lastMessage.content.includes("ASSESSMENT_RESULT:")) {
@@ -234,7 +249,8 @@ export function Chat() {
           part.type === 'tool-invocation' && 
           part.toolInvocation &&
           ['multipleChoice', 'readingComprehension', 'errorIdentification', 
-           'paraphrasingTask', 'idiomaticExpression', 'conditionalScenario'].includes(part.toolInvocation.toolName) && 
+           'paraphrasingTask', 'idiomaticExpression', 'conditionalScenario',
+           'assessmentResult'].includes(part.toolInvocation.toolName) && 
           part.toolInvocation?.args
         ) {
           // If it has a result, use that (completed tool call)
@@ -296,6 +312,17 @@ export function Chat() {
                 {findToolData(message).map((tool, idx) => {
                   if (tool.type === 'tool_result') {
                     const result = tool.data;
+                    
+                    // Handle assessment result
+                    if (tool.toolType === 'assessmentResult') {
+                      return (
+                        <AssessmentResultComponent 
+                          key={`${message.id}-assessment-${idx}`}
+                          result={result}
+                        />
+                      );
+                    }
+                    
                     if (result) {
                       const isAnswered = selectedOptions[result.questionId];
                       
@@ -455,7 +482,8 @@ export function Chat() {
           )}
         </div>
         
-        {isAssessmentComplete && assessment && (
+        {/* Legacy Assessment Result Display */}
+        {isAssessmentComplete && assessment && !findToolData(messages[messages.length - 1]).some(tool => tool.toolType === 'assessmentResult') && (
           <div 
             className="mt-4 rounded-lg border bg-background p-4 shadow-sm"
           >

@@ -10,6 +10,16 @@ export const optionSchema = z.object({
 
 export type Option = z.infer<typeof optionSchema>;
 
+// Assessment Result Schema
+export const assessmentResultSchema = z.object({
+  level: z.string(),
+  strengths: z.array(z.string()),
+  weaknesses: z.array(z.string()),
+  recommendations: z.array(z.string())
+});
+
+export type AssessmentResult = z.infer<typeof assessmentResultSchema>;
+
 // Multiple Choice Question Schema
 export const multipleChoiceSchema = z.object({
   question: z.string(),
@@ -117,6 +127,20 @@ export const conditionalScenarioResponseSchema = z.object({
 });
 
 // Tool Definitions using Vercel AI SDK's tool function
+export const assessmentResultTool = tool({
+  description: "Provide an assessment of the user's English proficiency level",
+  parameters: assessmentResultSchema,
+  execute: async ({ level, strengths, weaknesses, recommendations }) => {
+    return {
+      level,
+      strengths,
+      weaknesses,
+      recommendations,
+      timestamp: new Date().toISOString()
+    };
+  },
+});
+
 export const multipleChoiceTool = tool({
   description: "Present a multiple choice question to the user",
   parameters: multipleChoiceSchema,
@@ -201,6 +225,7 @@ export const conditionalScenarioTool = tool({
 
 // Export tools as an object for AI SDK
 export const tools = {
+  assessmentResult: assessmentResultTool,
   multipleChoice: multipleChoiceTool,
   readingComprehension: readingComprehensionTool,
   errorIdentification: errorIdentificationTool,
