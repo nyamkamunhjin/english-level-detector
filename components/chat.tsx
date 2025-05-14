@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChatMessageComponent } from "@/components/chat-message";
 import { Assessment } from "@/lib/types";
-import { AssessmentResult } from "@/lib/tools";
 import { Message, useChat } from "@ai-sdk/react";
 import LLMOutput from "./llm-output";
 import { ChevronDown, Loader2, Wrench } from "lucide-react";
@@ -16,11 +15,6 @@ import { IdiomaticExpression } from "./idiomatic-expression";
 import { ConditionalScenario } from "./conditional-scenario";
 import { AssessmentResultComponent } from "./assessment-result";
 import { Progress } from "@/components/ui/progress";
-
-// Extended message interface to include isHidden property
-interface ExtendedMessage extends Message {
-  isHidden?: boolean;
-}
 
 // Option interface for multiple choice questions
 interface Option {
@@ -62,7 +56,6 @@ export function Chat() {
     ]
   });
 
-  console.log(messages);
 
   // Check if the chat is currently loading
   const isLoading = status === 'streaming' || status === 'submitted';
